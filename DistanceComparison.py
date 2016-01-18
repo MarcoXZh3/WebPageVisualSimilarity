@@ -5,7 +5,6 @@ Created on Dec 14, 2015
 '''
 
 import random
-from __builtin__ import True
 
 
 class Rectangle(object):
