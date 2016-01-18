@@ -3,7 +3,7 @@ Created on Jan 11, 2016
 
 @author: MarcoXZh
 '''
-import math, requests, re, sqlite3
+import math, requests, re, sqlite3, random
 from urlparse import urlparse
 from lxml import html
 
@@ -144,7 +144,7 @@ def saveSqliteDatabase(debug=False):
     for line in f:
         try:
             x = line.strip().encode('ASCII', 'replace')
-            if x != '':
+            if '://' in x:
                 lines.add(x)
         except:
             pass
@@ -153,7 +153,10 @@ def saveSqliteDatabase(debug=False):
     f.close()
     lines = list(lines)
     for i in range(len(lines)):
+        if debug:
+            print i+1, lines[i]
         lines[i] = (i+1, lines[i])
+    pass # for i in range(len(lines))
     c.executemany('INSERT INTO pages_160114 VALUES (?, ?)', lines)
     conn.commit()
 
@@ -189,6 +192,44 @@ def saveSqliteDatabase(debug=False):
     conn.close()
 pass # def saveSqliteDatabase(debug=False)
 
+def exportURLs(debug=False):
+    '''
+    Export all the URLs to a JavaScript array
+    '''
+    conn = sqlite3.connect('TestCases/WebPages.db')
+    c = conn.cursor()
+    urls = []
+    c.execute('SELECT * FROM pages_160111;')
+    for r in c.fetchall():
+        assert len(r) == 4
+        if r[-1] == 1:
+            urls.append(r[2])
+    pass # for r in c.fetchall()
+    c.execute('SELECT * FROM pages_160114;')
+    urls1 = []
+    for r in c.fetchall():
+        assert len(r) == 2
+        urls1.append(r[1])
+    pass # for r in c.fetchall()
+    conn.close()
+
+    random.shuffle(urls1)
+    urls += urls1
+    f = open('TestCases/urls.js', 'w')
+    f.write('var URLs = [\n')
+    lenURLs = len(urls)
+    for i, u in enumerate(urls):
+        if debug:
+            print i+1, u
+        line = ' /* %5d */ \'%s\',\n' % (i+1, u)
+        if i == lenURLs - 1:
+            line = line[:-2] + '\n'
+        f.write(line)
+    pass # for i, u in enumerate(urls)
+    f.write(']; // var URLs = [ ... ];\n')
+    f.close()
+pass # def exportURLs(debug=False)
+
 
 if __name__ == '__main__':
 #     AlexaGlobalTopSites(500)
@@ -206,5 +247,6 @@ if __name__ == '__main__':
     SELECT count(*) FROM pares_160111;
     .exit
     '''
-    saveSqliteDatabase()
+#     saveSqliteDatabase()
+    exportURLs()
 pass # if __name__ == '__main__'
