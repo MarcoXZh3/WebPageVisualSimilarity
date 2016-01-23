@@ -1,0 +1,13 @@
+{
+  "title": "Web Page Visual Similarity",
+  "name": "gestaltvs",
+  "version": "1.0.0",
+  "description": "Evaluate web page visual similarity by using Gestalt laws of grouping and extended subtree",
+  "main": "index.js",
+  "author": "MarcoXZh",
+  "engines": {
+    "firefox": ">=38.0a1",
+    "fennec": ">=38.0a1"
+  },
+  "license": "MIT"
+}
