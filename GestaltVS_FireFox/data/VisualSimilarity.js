@@ -228,8 +228,7 @@ function createSubtreeFromDOM(domElement, parentNode, treeType) {
     node.setAttribute('bottom', (top + domElement.offsetHeight) + '');
     node.setAttribute('xpath', getXPath(domElement));
     for (var i = 0; i < cssVS.length; i++)
-      var f = document.defaulView ? document.defaulView.getComputedStyle : getComputedStyle;
-      node.setAttribute('css_' + cssVS[i], f(domElement).getPropertyValue(cssVS[i]));
+      node.setAttribute('css_' + cssVS[i], getComputedStyle(domElement).getPropertyValue(cssVS[i]));
     node.setAttribute('css_position', getComputedStyle(domElement).getPropertyValue('position'));
 
     // Update the parentNode
