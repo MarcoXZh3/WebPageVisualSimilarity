@@ -1,5 +1,7 @@
 # Python complition files
 *.pyc
+*.pyo
+*$py.class
 
 # Database for testing
 TestCases
