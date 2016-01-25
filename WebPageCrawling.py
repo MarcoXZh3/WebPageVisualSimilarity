@@ -19,7 +19,9 @@ def AlexaGlobalTopSites(num=500, debug=True):
     while pageIndex < 20:
         url = 'http://www.alexa.com/topsites/global;%d' % pageIndex
         if debug:
-            print 'Crawling Alexa page %d/%d: %s' % (pageIndex+1, math.ceil(num/25.0), url)
+            print '%s -- %-50s' % ('WebPageCrawling.AlexaGlobalTopSites',
+                                   'Crawling Alexa page %d/%d: %s' % (pageIndex+1, math.ceil(num/25.0), url))
+        pass # if debug
         try:
             links = html.fromstring(requests.request('GET', url, timeout=5).text) \
                         .xpath('//p[@class=\"desc-paragraph\"]/a/text()')
@@ -35,10 +37,13 @@ def AlexaGlobalTopSites(num=500, debug=True):
             topsite = {'host':link, 'url':''}
             try:
                 if debug:
-                    print '  Crawling top site: %d/%d: %-30s...' % (len(topSites)+1, num, link), 
+                    print '%s -- %-50s' % ('WebPageCrawling.AlexaGlobalTopSites',
+                                           '  Crawling top site: %d/%d: %-30s...' % (len(topSites)+1, num, link)),
+                pass # if debug
                 topsite['url'] = requests.request('GET', 'http://' + link, timeout=10).url
                 if debug:
                     print ('done: %s' % topsite['url'])
+                pass # if debug
             except:
                 if debug:
                     print 'exception!!'
@@ -51,11 +56,13 @@ def AlexaGlobalTopSites(num=500, debug=True):
     pass # while pageIndex < 20
 
     if debug:
-        print 'Output the results'
+        print '%s -- %-50s' % ('WebPageCrawling.AlexaGlobalTopSites', 'Output the results')
+    pass # if debug
     f = open('TestCases/topsites.txt', 'w')
     for i, topsite in enumerate(topSites):
         if debug:
-            print i, topsite
+            print '%s -- %d: %s' % ('WebPageCrawling.AlexaGlobalTopSites', i+1, topsite)
+        pass # if debug
         f.write('%3d\t%-30s\t%s\n' % (i+1, topsite['host'], topsite['url']))
     pass # for i, topsite in enumerate(topSites)
     f.close()
@@ -78,7 +85,9 @@ def crawTopWebsites(debug=True):
     f.close()
     for i, site in enumerate(sites):
         if debug:
-            print 'Crawling %3d/%3d: %s' % (i+1, len(sites), site[-1])
+            print '%s -- %-50s' % ('WebPageCrawling.crawTopWebsites',
+                                   'Crawling %3d/%3d: %s' % (i+1, len(sites), site[-1]))
+        pass # if debug
         links = []
         try:
             links = html.fromstring(requests.request('GET', site[-1].strip(), timeout=10).text).xpath('//a/@href')
@@ -86,7 +95,8 @@ def crawTopWebsites(debug=True):
             pass
         pass # try - except
         if debug:
-            print ('  all links: %d' % len(links)),
+            print '%s -- %-50s' % ('WebPageCrawling.crawTopWebsites', '  all links: %d' % len(links)),
+        pass # if debug
         activeLinks = set()
         for link in links:
             if link is None or link.strip() == '':
@@ -102,13 +112,15 @@ def crawTopWebsites(debug=True):
         pass # for link in links
         activeLinks = list(activeLinks)
         if debug:
-            print ('active links: %d' % len(activeLinks)),
+            print 'active links: %d' % len(activeLinks),
+        pass # if debug
         f = open('TestCases/LinkPool.txt', 'ab')
         for link in activeLinks:
             f.write((link + '\n').encode('UTF-8'))
         f.close()
         if debug:
             print 'done'
+        pass # if debug
     pass # for i, site in enumerate(sites)
 pass # def crawTopWebsites(debug=True)
 
@@ -154,7 +166,8 @@ def saveSqliteDatabase(debug=False):
     lines = list(lines)
     for i in range(len(lines)):
         if debug:
-            print i+1, lines[i]
+            print '%s -- %d: %s' % ('WebPageCrawling.saveSqliteDatabase', i+1, lines[i])
+        pass # if debug
         lines[i] = (i+1, lines[i])
     pass # for i in range(len(lines))
     c.executemany('INSERT INTO pages_160114 VALUES (?, ?)', lines)
@@ -220,7 +233,8 @@ def exportURLs(debug=False):
     lenURLs = len(urls)
     for i, u in enumerate(urls):
         if debug:
-            print i+1, u
+            print '%s -- %d: %s' % ('WebPageCrawling.saveSqliteDatabase', i+1, u)
+        pass # if debug
         line = ' /* %5d */ \'%s\',\n' % (i+1, u)
         if i == lenURLs - 1:
             line = line[:-2] + '\n'
