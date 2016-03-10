@@ -3,7 +3,7 @@ Created on Mar 8, 2016
 
 @author: Marco
 '''
-import os, shutil, random, re, datetime, natsort
+import os, shutil, random, re, datetime, natsort, math
 import numpy
 from skimage import img_as_float
 from skimage.measure import compare_ssim as ssim
@@ -87,6 +87,21 @@ def calcMSE(imageA, imageB):
     return numpy.linalg.norm(img_as_float(img1) - img_as_float(img2))
 pass # def calcMSE(imageA, imageB)
 
+def calcPSNR(imageA, imageB):
+    '''
+    Peak signal-to-noise ratio:
+    https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio
+
+    Reference -- psnr:
+    https://github.com/aizvorski/video-quality/blob/master/psnr.py
+    '''
+    vMSE = calcMSE(imageA, imageB)
+    if vMSE == 0:
+        return 100
+    PIXEL_MAX = 255.0
+    return 20 * math.log10(PIXEL_MAX / math.sqrt(vMSE))
+pass # def calcPSNR(imageA, imageB)
+
 def calcSSIM(imageA, imageB):
     '''
     Structural Similarity Measure:
@@ -129,6 +144,14 @@ def resultsCollecting(number=10):
             records[(cols[2][5:], cols[3][5:])] = {'mse': float(cols[-1][4:])}
         pass # for line in f
         f.close()
+        f = open('TestCases/ImageComparison/psnr-results%02d.txt' % (i+1), 'r')
+        for line in f:
+            cols = line.strip().split('\t')
+            files.add(cols[2][5:])
+            files.add(cols[3][5:])
+            records[(cols[2][5:], cols[3][5:])]['psnr'] = float(cols[-1][5:])
+        pass # for line in f
+        f.close()
         f = open('TestCases/ImageComparison/ssim-results%02d.txt' % (i+1), 'r')
         for line in f:
             cols = line.strip().split('\t')
@@ -156,56 +179,76 @@ def resultsCollecting(number=10):
     pass # for k1, k2 in records.keys()
 
     f = open('TestCases/ImageComparison.log', 'w')
-    f.write('Image 1\tImage 2\tNCD\tSSIM\tMSE\n')
+    f.write('Image 1\tImage 2\tNCD\tSSIM\tPSNR\tMSE\n')
     for r in results:
-        f.write('%s\t%s\t%.4f\t%.4f\t%.4f\n' % (r[0], r[1], r[2]['ncd'], 2+r[2]['ssim'], r[2]['mse']))
+        f.write('%s\t%s\t%.4f\t%.4f\t%.4f\t%.4f\n' % (r[0], r[1], r[2]['ncd'], r[2]['ssim'], r[2]['psnr'], r[2]['mse']))
     f.close()
 pass # def resultsCollecting(number=10)
 
 
 if __name__ == '__main__':
     numSubsets = 10
-    resultsCollecting(numSubsets)
-    exit(0)
-#     MyTestSet(number=numSubsets, debug=True)
+    createTestSet = not True
+    calculation = not True
+    collection = True
 
-    for i in range(numSubsets):
-        imgs = openImageFromSubset(os.path.join('TestCases', 'ImgSet%02d' % (i + 1)))
-        f = open(os.path.join('TestCases', 'ssim-results%02d.txt' % (i+1)), 'w')
-        f.close()
-        f = open(os.path.join('TestCases', 'mse-results%02d.txt' % (i+1)), 'w')
-        f.close()
-        idx, total = 1, len(imgs) * (len(imgs) - 1) / 2
-        for x in range(len(imgs)):
-            for y in range(x+1, len(imgs)):
-                path1, img1 = imgs[x]
-                path2, img2 = imgs[y]
-                print 'subset%02d: %d/%d %s %s' % (i+1, idx, total, path1, path2),
+    if createTestSet:
+        MyTestSet(number=numSubsets, debug=True)
 
-                # Calculate MSE
-                t1 = datetime.datetime.now()
-                vMSE = calcMSE(img1, img2)
-                f = open(os.path.join('TestCases', 'mse-results%02d.txt' % (i+1)), 'a')
-                strMSE = 'None' if vMSE is None else '%.4f' % vMSE
-                f.write('i=%03d\tj=%03d\timg1=%-28s\timg2=%-28s\tmse=%s\n' % \
-                        (x, y, path1, path2, strMSE))
-                f.close()
-                t2 = datetime.datetime.now()
-                print 'MSE=%.4f; time=%s' % (vMSE, t2 - t1)
+    if calculation:
+        for i in range(numSubsets):
+            imgs = openImageFromSubset(os.path.join('TestCases', 'ImgSet%02d' % (i + 1)))
+            f = open(os.path.join('TestCases', 'ssim-results%02d.txt' % (i+1)), 'w')
+            f.close()
+            f = open(os.path.join('TestCases', 'mse-results%02d.txt' % (i+1)), 'w')
+            f.close()
+            f = open(os.path.join('TestCases', 'psnr-results%02d.txt' % (i+1)), 'w')
+            f.close()
+            idx, total = 1, len(imgs) * (len(imgs) - 1) / 2
+            for x in range(len(imgs)):
+                for y in range(x+1, len(imgs)):
+                    path1, img1 = imgs[x]
+                    path2, img2 = imgs[y]
+                    print 'subset%02d: %d/%d %s %s' % (i+1, idx, total, path1, path2),
+    
+                    # Calculate MSE
+                    t1 = datetime.datetime.now()
+                    vMSE = calcMSE(img1, img2)
+                    f = open(os.path.join('TestCases', 'mse-results%02d.txt' % (i+1)), 'a')
+                    strMSE = 'None' if vMSE is None else '%.4f' % vMSE
+                    f.write('i=%03d\tj=%03d\timg1=%-28s\timg2=%-28s\tmse=%s\n' % \
+                            (x, y, path1, path2, strMSE))
+                    f.close()
+                    t2 = datetime.datetime.now()
+                    print 'MSE=%.4f; time=%s' % (vMSE, t2 - t1),
+    
+                    # Calculate MSE
+                    t1 = datetime.datetime.now()
+                    vPSNR = calcPSNR(img1, img2)
+                    f = open(os.path.join('TestCases', 'psnr-results%02d.txt' % (i+1)), 'a')
+                    strPSNR = 'None' if vPSNR is None else '%.4f' % vPSNR
+                    f.write('i=%03d\tj=%03d\timg1=%-28s\timg2=%-28s\tpsnr=%s\n' % \
+                            (x, y, path1, path2, strPSNR))
+                    f.close()
+                    t2 = datetime.datetime.now()
+                    print 'PSNR=%.4f; time=%s' % (vPSNR, t2 - t1),
+    
+                    # Calculate SSIM
+                    t1 = datetime.datetime.now()
+                    vSSIM = calcSSIM(img1, img2)
+                    f = open(os.path.join('TestCases', 'ssim-results%02d.txt' % (i+1)), 'a')
+                    strSSIM = 'None' if vSSIM is None else '%.4f' % vSSIM
+                    f.write('i=%03d\tj=%03d\timg1=%-28s\timg2=%-28s\tssim=%s\n' % \
+                            (x, y, path1, path2, strSSIM))
+                    f.close()
+                    t2 = datetime.datetime.now()
+                    print 'SSIM=%.4f; time=%s' % (vSSIM, t2 - t1)
+    
+                    idx += 1
+            pass # for - for
+        pass # for i in range(numSubsets)
+    pass # if calculation
 
-                # Calculate SSIM
-                t1 = datetime.datetime.now()
-                vSSIM = calcSSIM(img1, img2)
-                f = open(os.path.join('TestCases', 'ssim-results%02d.txt' % (i+1)), 'a')
-                strSSIM = 'None' if vSSIM is None else '%.4f' % vSSIM
-                f.write('i=%03d\tj=%03d\timg1=%-28s\timg2=%-28s\tssim=%s\n' % \
-                        (x, y, path1, path2, strSSIM))
-                f.close()
-                t2 = datetime.datetime.now()
-                print 'SSIM=%.4f; time=%s' % (vSSIM, t2 - t1)
-
-                idx += 1
-        pass # for - for
-    pass # for i in range(numSubsets)
-
+    if collection:
+        resultsCollecting(numSubsets)
 pass # if __name__ == '__main__'
