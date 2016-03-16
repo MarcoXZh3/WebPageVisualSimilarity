@@ -111,9 +111,9 @@
             var hex2 = color2.hex(), lab2 = color2.lab();
             var deltaE = DeltaE.getDeltaE00({L: lab1[0], A: lab1[1], B: lab1[2]},
                                             {L: lab2[0], A: lab2[1], B: lab2[2]});
-            var eucDist = Math.sqrt(Math.pow(lab1[0] - lab2[0], 2) +
-                                    Math.pow(lab1[1] - lab2[1], 2) +
-                                    Math.pow(lab1[2] - lab2[2], 2));
+            var eucDist = Math.sqrt(Math.pow(rgb1[0] - rgb2[0], 2) +
+                                    Math.pow(rgb1[1] - rgb2[1], 2) +
+                                    Math.pow(rgb1[2] - rgb2[2], 2));
           } while (count %2 == 0 ? eucDist <  i || eucDist > i+1
                                  : deltaE < 0.1 * i || deltaE > 0.1 * (i+1));
           cpGroup.push({color1:hex1, color2:hex2, deltaE:deltaE, eucDist:eucDist});

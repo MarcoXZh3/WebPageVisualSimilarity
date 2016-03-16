@@ -48,6 +48,15 @@ def readData(debug=False):
                 if idx % 2 == 0:
                     cache = sum([y['deltaE'] for y in x[:-1]]) / (len(x) - 1.0)
                 else:
+                    # Weighted Euclidean Distance for RGB: http://www.compuphase.com/cmetric.htm
+                    for y in x[:-1]:
+                        rgb1 = [int(y['color1'][1:3], 16), int(y['color1'][3:5], 16), int(y['color1'][5:], 16)]
+                        rgb2 = [int(y['color2'][1:3], 16), int(y['color2'][3:5], 16), int(y['color2'][5:], 16)]
+                        avgR = 0.5 * (rgb1[0] + rgb2[0])
+                        y['eucDist'] = (((rgb1[0] - rgb2[0]) ** 2.0) * (2.0 + avgR / 256.0) +
+                                        ((rgb1[1] - rgb2[1]) ** 2.0) * 4.0 +
+                                        ((rgb1[2] - rgb2[2]) ** 2.0) * (2.0 + (255 - avgR) / 256.0)) ** 0.5
+                    pass # for y in x[:-1]
                     row.append((cache, sum([y['eucDist'] for y in x[:-1]]) / (len(x) - 1.0)))
                 pass # else - if idx % 2 == 0
                 idx += 1
