@@ -3,7 +3,7 @@ Created on Jan 20, 2016
 
 @author: MarcoXZh
 '''
-import os, random, shutil
+import os, random, shutil, re
 
 def cleanTestCases(oDir, dDir, groupSize=50, debug=False):
     '''
@@ -105,8 +105,66 @@ def cleanTestCases(oDir, dDir, groupSize=50, debug=False):
     pass # if debug
 pass # def cleanTestCases(oDir, dDir, groupSize=50, debug=False)
 
+def reformatFiles(fileNames, debug=False):
+    '''
+    Reformat the files to CSV with header
+    @param debug:     {Boolean} print out debugging information if true; otherwise not print
+    '''
+    for fileName in fileNames:
+        # TreeSize log file
+        if debug:
+            print '%s -- %-50s' % ('VisualSimilarity.reformatFiles', 'Reformat TreeSize-%s ...' % fileName),
+        pass # if debug
+        f = open(os.path.join('TestCases', 'TreeSize-%s.txt' % fileName), 'r')
+        lines = []
+        for line in f:
+            line = line.strip()
+            if line != '':
+                lines.append(line.split())
+        pass # for line in f
+        f.close()
+        f = open(os.path.join('TestCases', 'TreeSize-%s.log' % fileName), 'w')
+        f.write('%-32s Size\n' % 'Tree,')
+        for line in lines:
+            f.write('%-32s %s\n' % (line[0] + ',', line[1]))
+        f.close()
+        if debug:
+            print 'done'
+        pass # if debug
+
+        # EST log file
+        if debug:
+            print '%s -- %-50s' % ('VisualSimilarity.reformatFiles', 'Reformat EST-%s ...' % fileName),
+        pass # if debug
+        f = open(os.path.join('TestCases', 'EST-%s.txt' % fileName), 'r')
+        lines = []
+        for line in f:
+            line = line.strip()
+            if line != '':
+                lines.append(line)
+        pass # for line in f
+        f.close()
+        f = open(os.path.join('TestCases', 'EST-%s.log' % fileName), 'w')
+        f.write('%-6s %-6s %-32s %-32s %-8s %s\n' % ('Group,', 'Index,', 'Tree1,', 'Tree2,', 'EST,', 'Time(ms)'))
+        for line in lines:
+            cols = [x.strip() for x in re.split(':|,', line)]
+            if debug:
+                assert len(cols) == 7 and cols[0] == 'Group'
+            pass # if debug
+            f.write('%-6s %-6s %-32s %-32s %-8s %s\n' % (cols[1] + ',', cols[2].split('/')[0] + ',',
+                                                         cols[3] + ',', cols[4] + ',',
+                                                         cols[5].split('=')[-1] + ',', re.split('\D+', cols[6])[1]))
+        pass # for line in lines
+        f.close()
+        if debug:
+            print 'done'
+        pass # if debug
+    pass # for fileName in fileNames
+pass # def reformatFiles(debug=False)
+
 
 if __name__ == '__main__':
     # Clean the raw pages crawled by GestaltVS
-    cleanTestCases(os.path.join('D:\\', 'Crawling'), os.path.join('D:\\', 'TestCases\\'), groupSize=100, debug=True)
+#     cleanTestCases(os.path.join('D:\\', 'Crawling'), os.path.join('D:\\', 'TestCases\\'), groupSize=100, debug=True)
+    reformatFiles(['DT', 'VT', 'BT'], debug=True)
 pass # if __name__ == '__main__'
