@@ -3,75 +3,112 @@
 <head>
     <meta charset="utf-8">
     <title>Distance Test </title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
-    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
-    <style>
-        #rect1 {width:150px; height:200px;}
-        #rect2 {width:50px; height:100px;}
-    </style>
-    <script>
-        $(function() {
-            $('.ui-widget-content').draggable().resizable();
-            $('.ui-widget-content').mouseup(function(e) {
-                var t1 = $('#rect1').position().top, l1 = $('#rect1').position().left;
-                var w1 = $('#rect1').width(), h1 = $('#rect1').height(), r1 = l1 + w1, b1 = t1 + h1;
-                var t2 = $('#rect2').position().top, l2 = $('#rect2').position().left;
-                var w2 = $('#rect2').width(), h2 = $('#rect2').height(), r2 = l2 + w2, b2 = t2 + h2;
-
-                // Centroid Distance
-                var cx1 = l1 + 0.5 * w1, cy1 = t1 + 0.5 * h1;
-                var cx2 = l2 + 0.5 * w2, cy2 = t2 + 0.5 * h2;
-                var centDist = Math.sqrt(Math.pow(cx1 - cx2, 2) + Math.pow(cy1 - cy2, 2));
-
-                // Gap Distance
-                var hGapDist = Math.min(Math.abs(l1 - l2), Math.abs(l1 - r2), Math.abs(r1 - l2), Math.abs(r1 - r2));
-                var vGapDist = Math.min(Math.abs(t1 - t2), Math.abs(t1 - b2), Math.abs(b1 - t2), Math.abs(b1 - b2));
-                var hSign = Math.abs(cx1 - cx2) > 0.5 * (w1 + w2) ? 1.0 : - 1.0;
-                var vSign = Math.abs(cy1 - cy2) > 0.5 * (h1 + h2) ? 1.0 : - 1.0;
-                var gapDist = Math.max(hSign * hGapDist, vSign * vGapDist)
-
-                // Hausdorff Distance
-                var hd = function(l1, t1, r1, b1, cx1, cy1, l2, t2, r2, b2, cx2, cy2) {
-                    if (l1 >= l2 && r1 <= r2 && t1 >= t2 && b1 <= b2)
-                        return 0.0;
-                    if (l1 <= l2 && r1 >= r2 && t1 <= t2 && b1 >= b2)
-                        return 0.0;
-                    var deltaX = cx1 < cx2 ? l2 - l1 : r2 - r1, deltaY = cy1 < cy2 ? t2 - t1 : b2 - b1;
-                    if (l1 >= l2 && r1 <= r2)
-                        return 1.0 * Math.abs(deltaY);
-                    if (t1 >= t2 && b1 <= b2)
-                        return 1.0 * Math.abs(deltaX);
-                    return Math.sqrt(deltaX *deltaX + deltaY * deltaY)
-                }; // var hd = function(...) { ... };
-                var hausDist = Math.max(hd(l1, t1, r1, b1, cx1, cy1, l2, t2, r2, b2, cx2, cy2),
-                                        hd(l2, t2, r2, b2, cx2, cy2, l1, t1, r1, b1, cx1, cy1));
-
-                // Relative Hausdorff Distance
-                var rhd = function(l1, t1, r1, b1, cx1, cy1, l2, t2, r2, b2, cx2, cy2) {
-                    var w1 = r1 - l1, h1 = b1 - t1;
-                    if (l1 >= l2 && r1 <= r2 && t1 >= t2 && b1 <= b2)
-                        return 0.0;
-                    if (l1 <= l2 && r1 >= r2 && t1 <= t2 && b1 >= b2)
-                        return 0.0;
-                    var deltaX = cx1 < cx2 ? l2 - l1 : r2 - r1, deltaY = cy1 < cy2 ? t2 - t1 : b2 - b1;
-                    if (l1 >= l2 && r1 <= r2)
-                        return 1.0 * Math.abs(deltaY / h1);
-                    if (t1 >= t2 && b1 <= b2)
-                        return 1.0 * Math.abs(deltaX / w1);
-                    return Math.sqrt(deltaX *deltaX + deltaY * deltaY) / Math.sqrt(w1 * w1 + h1 * h1);
-                }; // var rhd = function(...) { ... };
-                var relaHausDist = Math.max(rhd(l1, t1, r1, b1, cx1, cy1, l2, t2, r2, b2, cx2, cy2),
-                                            rhd(l2, t2, r2, b2, cx2, cy2, l1, t1, r1, b1, cx1, cy1));
-
-                $('#out').text(centDist + '; ' + gapDist + '; ' + hausDist + '; ' + relaHausDist + '\n');
-            }); // $('.ui-widget-content').mouseup(function(e) { ... });
-        });
-    </script>
+    <script id="loadElements">function loadElements(blks, debug) {
+      if (!blks)      blks = 8;
+      var left = 10, height = 50 + Math.round(30 * Math.random()),
+          width = 400, top = Math.round(0.1 * height);
+      var display = document.getElementById('display');
+      display.innerHTML = '';
+      for (var i = 0; i < blks; i++) {
+        var blk = document.createElement('div');
+        blk.id = 'rect-' + i;
+        blk.style = 'background-color:lightgray; left:10px; margin-left:' + left + 'px; margin-top:' + top +
+                    'px; width:' + width + 'px; height:' + height + 'px;';
+        display.appendChild(blk);
+      } // for (var i = 0; i < blks; i++)
+      if (debug) {
+        for (var i = 0; i < blks; i++) {
+          var blk = display.children[i];
+          blk.innerHTML = JSON.stringify([blk.offsetLeft, blk.offsetTop,
+                                          blk.offsetWidth, blk.offsetHeight]);
+        } // for (var i = 0; i < blks; i++)
+      } // if (debug)
+      setInterval(function(){
+        var display = document.getElementById('display');
+        if (display.value == 'true') {
+          var blk = display.children[Math.floor(display.childElementCount / 2)];
+          var marTop = parseInt(blk.style.marginTop.split('px')[0]);
+          blk.style.marginTop = Math.round(marTop + top * 0.1) + 'px';
+          if (debug) {
+            for (var i = 0; i < blks; i++) {
+              var blk = display.children[i];
+              blk.innerHTML = JSON.stringify([blk.offsetLeft, blk.offsetTop,
+                                              blk.offsetWidth, blk.offsetHeight]);
+            } // for (var i = 0; i < blks; i++)
+          } // if (debug)
+        } // if (display.value == 'true')
+      }, 1000); // setInterval(function(){ ... }, 2000);
+    }</script> <!-- id="loadElements" -->
+    <script id="playOrPause">function playOrPause() {
+      var display = document.getElementById('display');
+      display.value = (display.value == 'true') ? 'false' : 'true';
+    }</script> <!-- id="playOrPause" -->
+    <script id="cacheData">function cacheData() {
+      var display = document.getElementById('display');
+      var rects = [], dists = {'cd':[], 'gd':[], 'hd':[], 'nd':[]};
+      for (var i = 0; i < display.childElementCount; i++) {
+        if (i < Math.floor(display.childElementCount / 2) - 1)
+          continue ;
+        var blk = display.children[i];
+        rects.unshift([blk.offsetLeft, blk.offsetTop, blk.offsetWidth, blk.offsetHeight]);
+        if (rects.length >= 3)
+          break ;
+      } // for (var i = 0; i < display.childElementCount; i++)
+      for (var i = 0; i < rects.length-1; i++) {
+        var r1 = rects[i], r2 = rects[i+1];
+        dists.cd.push(Math.abs(r1[1] - r2[1]));
+        dists.gd.push(Math.abs(r1[1] - r2[1] - r2[3]));
+        dists.hd.push(Math.abs(r1[1] - r2[1]));
+        dists.nd.push(Math.abs(r1[1] - r2[1]) / r2[3]);
+      } // for (var i = 0; i < rects.length-1; i++)
+      // Cache the distances
+      var save = document.getElementById('saveddata');
+      save.value += JSON.stringify(dists) + '\n';
+      var re = document.getElementById('results');
+      var count = save.value.trim().split('\n').length;
+      re.innerHTML += count + ': ' + JSON.stringify(dists) + '<br />';
+      re.scrollTop = re.scrollHeight;
+    }</script> <!-- id="cacheData" -->
+    <script id="saveData">function saveData() {
+      var save = document.getElementById('saveddata');
+      if (save.value.trim() == '')
+        return ;
+      var blob = new Blob([save.value], {type:'octet/stream'});
+      var download = document.createElement('a');
+      download.href = window.URL.createObjectURL(blob);
+      download.download = 'results.txt';
+      download.click();
+      save.value = '';
+      document.getElementById('results').innerHTML = '';
+    }</script> <!-- id="saveData" -->
 </head>
-<body>
-    <div id="out" style="border:solid 1px;"></div>
-    <div id="rect1" class="ui-widget-content"></div>
-    <div id="rect2" class="ui-widget-content"></div>
+<body onload="loadElements();">
+    <div style="width:45%; float:left;">
+        <h3>Brief introduction</h3>
+        <ul>
+            <li>8 rectangles (gray) are randomly generated and evenly distributed;</li>
+            <li>The gap between the 4th and 5th rectangles increses every 2 seconds;</li>
+            <li>The &ldquo;Play/Pause&rdquo; button pauses/resumes the gap increament.</li>
+            <li>The 8 rectangles are considered as one group at first. Please pause
+                <span style="font-weight:bold;">immediatly</span> when you think
+                they should be split into two groups because of the gap increament.</li>
+            <li>After pause, the distances are recorded at the back end. Please click
+                &ldquo;Next Test&rdquo; to cache it. The cached results will be displayed in the
+                result box.</li> 
+            <li>Please run 20 tests, and then click &ldquo;Save All&rdquo; to save all results.
+                The results will be downloaded into a &ldquo;results.txt&rdquo; file.
+                Please send this file back to me.</li>
+        </ul>
+        <div style="font-weight: bold; margin: 20px 0px;"> Test Results: <br />
+            <pre id="results" style="border:1px solid; overflow:scroll; height:300px; margin:5px;"></pre>
+        </div>
+        <div style="margin:10px 0px;">
+            <input type="button" value="Play / Pause" onclick="playOrPause();" />
+            <input type="button" value="Save All" style="float:right;" onclick="saveData();loadElements();" />
+            <input type="button" value="Next Test" style="float:right;" onclick="cacheData();loadElements();" />
+            <input type="hidden" value="" id="saveddata" />
+        </div>
+    </div>
+    <div id="display" style="width:50%; height:800px; float:right; border:solid black;"></div>
 </body>
 </html>
