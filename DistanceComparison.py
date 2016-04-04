@@ -4,7 +4,7 @@ Created on Dec 14, 2015
 @author: MarcoXZh
 '''
 
-import random
+import os, json
 
 
 class Rectangle(object):
@@ -44,8 +44,14 @@ class Rectangle(object):
             return True
         return False
     pass # def overlaps(rect1, rect2)
-
 pass # class Rectangle(object)
+
+def calcCentroidDist(rect1, rect2):
+    assert type(rect1) is Rectangle and type(rect2) is Rectangle
+    cx1, cy1 = rect1.getCentroid()
+    cx2, cy2 = rect2.getCentroid()
+    return ((cx1 - cx2) ** 2.0 + (cy1 - cy2) ** 2.0) ** 0.5
+pass # def calcCentroidDist(rect1, rect2)
 
 def calcGapDist(rect1, rect2):
     assert type(rect1) is Rectangle and type(rect2) is Rectangle
@@ -60,21 +66,6 @@ def calcGapDist(rect1, rect2):
     sgn = -1.0 if Rectangle.overlaps(rect1, rect2) else 1.0
     return (sgn * hGapDist) if abs(cx1 - cx2) > abs(cy1 - cy2) else (sgn * vGapDist)
 pass # def calcGapDist(rect1, rect2)
-
-def calcRelativeGapDist(rect1, rect2):
-    assert type(rect1) is Rectangle and type(rect2) is Rectangle
-
-    l1, t1, r1, b1 = rect1.getLeft(), rect1.getTop(), rect1.getRight(), rect1.getBottom()
-    l2, t2, r2, b2 = rect2.getLeft(), rect2.getTop(), rect2.getRight(), rect2.getBottom()
-    cx1, cy1 = rect1.getCentroid()
-    cx2, cy2 = rect2.getCentroid()
-    hGapDist = min([abs(l1 - l2), abs(l1 - r2), abs(r1 - l2), abs(r1 - r2)])
-    vGapDist = min([abs(t1 - t2), abs(t1 - b2), abs(b1 - t2), abs(b1 - b2)])
-
-    sgn = -1.0 if Rectangle.overlaps(rect1, rect2) else 1.0
-    return (sgn * hGapDist / (0.5 * ((r1 - l1) + (r2 - l2)))) if abs(cx1 - cx2) > abs(cy1 - cy2) else \
-           (sgn * vGapDist / (0.5 * ((b1 - t1) + (b2 - t2))))
-pass # def calcRelativeGapDist(rect1, rect2)
 
 def calcHausdorffDist(rect1, rect2):
     assert type(rect1) is Rectangle and type(rect2) is Rectangle
@@ -123,110 +114,55 @@ def calcRelativeHausdorffDist(rect1, rect2):
     return max(relativeHausdorffDist(rect1, rect2), relativeHausdorffDist(rect2, rect1))
 pass # def calcRelativeHausdorffDist(rect1, rect2)
 
-def calcCentroidDist(rect1, rect2):
-    assert type(rect1) is Rectangle and type(rect2) is Rectangle
-    cx1, cy1 = rect1.getCentroid()
-    cx2, cy2 = rect2.getCentroid()
-    return ((cx1 - cx2) ** 2.0 + (cy1 - cy2) ** 2.0) ** 0.5
-pass # def calcCentroidDist(rect1, rect2)
-
-def calcRelativeCentroidDist(rect1, rect2):
-    assert type(rect1) is Rectangle and type(rect2) is Rectangle
-    cx1, cy1 = rect1.getCentroid()
-    cx2, cy2 = rect2.getCentroid()
-
-    relevantLength = (0.5 * (rect1.getWidth() + rect2.getWidth())) if abs(cx1 - cx2) > abs(cy1 - cy2) \
-                else (0.5 * (rect1.getHeight() + rect2.getHeight()))
-    return ((cx1 - cx2) ** 2.0 + (cy1 - cy2) ** 2.0) ** 0.5 / relevantLength
-pass # def calcRelativeCentroidDist(rect1, rect2)
-
-def showDefect_GD_RGD(groups, numPerGroup):
-    '''
-    Generate rectangle pairs that can reflect the defect of gap distance
-    Fix both sizes and the fist position, and move the second horizontally/vertically near the first
-    @param groups:      {Integer} number of test groups
-    @param numPerGroup: {Integer} number of test case per group
-    '''
-    cases = []
-    num = 0
-    while num < groups:
-        curCases = []
-        width1, height1 = random.randint(200, 600), random.randint(100, 200)
-        width2, height2 = random.randint(100, 300), random.randint(80, 100)
-        x1, y1 = random.randint(200, 700), random.randint(20, 70)
-        x2 = x1 - int(round(width2 * (1 + random.random())))
-        y2 = y1 + height1 + random.randint(0, round(0.1 * height1))
-        while len(curCases) < numPerGroup:
-            curCases.append([x1, y1, width1, height1, x2, y2, width2, height2])
-            x2 += random.randint(5, round((2.2 * width2 + width1) / numPerGroup))
-        pass # while len(curCases) < numPerGroup
-        num += 1
-        cases += curCases
-    pass # while num < groups
-
-    f = open('TestCases/DistComp-GDRGD.txt', 'w')
-    f.write('L1\tT1\tW1\tH1\tL2\tT2\tW2\tH2\tCD\tRCD\tGD\tRGD\tHD\tRHD\n')
-    for x1, y1, width1, height1, x2, y2, width2, height2 in cases:
-        rect1, rect2 = Rectangle(x1, y1, width1, height1), Rectangle(x2, y2, width2, height2)
-        cd = calcCentroidDist(rect1, rect2)
-        rcd = calcRelativeCentroidDist(rect1, rect2)
-        gd = calcGapDist(rect1, rect2)
-        rgd = calcRelativeGapDist(rect1, rect2)
-        hd = calcHausdorffDist(rect1, rect2)
-        rhd = calcRelativeHausdorffDist(rect1, rect2)
-        f.write('%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n' % \
-                (x1, y1, width1, height1, x2, y2, width2, height2, cd, rcd, gd, rgd, hd, rhd ))
-    pass # for x1, y1, width1, height1, x2, y2, width2, height2 in cases
-pass # def showDefect_GD_RGD(groups, numPerGroup)
-
-def showDefect_CD_RCD(groups, numPerGroup):
-    '''
-    Generate rectangle pairs that can reflect the defect of centroid distance
-    Fix centroids, and change the sizes
-    @param groups:      {Integer} number of test groups
-    @param numPerGroup: {Integer} number of test case per group
-    '''
-    cases = []
-    num = 0
-    while num < groups:
-        curCases = []
-        width1, height1 = 2 * random.randint(10, 100), 2 * random.randint(10, 100)
-        width2, height2 = 2 * random.randint(10, 20), 2 * random.randint(10, 20)
-        cx1, cy1 = random.randint(100, 200), random.randint(100, 200)
-        cx2, cy2 = random.randint(100, 200), random.randint(600, 700)
-        while len(curCases) < numPerGroup:
-            curCases.append([cx1 - int(width1/2), cy1 - int(height1/2), width1, height1, \
-                             cx2 - int(width2/2), cy2 - int(height2/2), width2, height2])
-            yGap = round(0.5 * (abs(cy1 - cy2) - 0.5 * (height1 + height2)))
-            width1 += 2 * random.randint(0, 10)
-            height1 += 2 * random.randint(0, round(yGap/numPerGroup))
-            width2 += 2 * random.randint(0, 10)
-            height2 += 2 * random.randint(0, round(yGap/numPerGroup))
-        pass # while len(curCases) < numPerGroup
-        num += 1
-        cases += curCases
-    pass # while num < groups
-
-    f = open('TestCases/DistComp-CDRCD.txt', 'w')
-    f.write('L1\tT1\tW1\tH1\tL2\tT2\tW2\tH2\tCD\tRCD\tGD\tRGD\tHD\tRHD\n')
-    for x1, y1, width1, height1, x2, y2, width2, height2 in cases:
-        rect1, rect2 = Rectangle(x1, y1, width1, height1), Rectangle(x2, y2, width2, height2)
-        cd = calcCentroidDist(rect1, rect2)
-        rcd = calcRelativeCentroidDist(rect1, rect2)
-        gd = calcGapDist(rect1, rect2)
-        rgd = calcRelativeGapDist(rect1, rect2)
-        hd = calcHausdorffDist(rect1, rect2)
-        rhd = calcRelativeHausdorffDist(rect1, rect2)
-        f.write('%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n' % \
-                (x1, y1, width1, height1, x2, y2, width2, height2, cd, rcd, gd, rgd, hd, rhd ))
-    pass # for x1, y1, width1, height1, x2, y2, width2, height2 in cases
-pass # def showDefect_CD_RCD(groups, numPerGroup)
+def mergeExperimentResults(rounds):
+    records = []
+    for i in range(rounds):
+        f = open(os.path.join('TestCases', 'DistResults%d.txt' % (i+1)), 'r')
+        idx = 0
+        for line in f:
+            obj = json.loads(line.strip())
+            if i == 0:
+                records.append(obj['cd'] + obj['gd'] + obj['hd'] + obj['nd'])
+            else:
+                records[idx] += obj['cd'] + obj['gd'] + obj['hd'] + obj['nd']
+            idx += 1
+        f.close()
+    pass # for i in range(rounds)
+    f = open(os.path.join('TestCases', 'DistComparison.log'), 'w')
+    header = []
+    for i in range(rounds):
+        header += ['CD1-%d' % (i+1), 'CD2-%d' % (i+1), 'GD1-%d' % (i+1), 'GD2-%d' % (i+1), 
+                   'HD1-%d' % (i+1), 'HD2-%d' % (i+1), 'ND1-%d' % (i+1), 'ND2-%d' % (i+1)]
+    f.write('\t'.join(header) + '\n')
+    for r in records:
+        f.write('\t'.join(['%.4f' % x for x in r]) + '\n')
+    f.close()
+pass # def mergeExperimentResults(rounds)
 
 
 if __name__ == '__main__':
-    numPerGroup = 20
-    groups = 2
+    rounds = 5
+    mergeExperimentResults(rounds)
 
-    showDefect_GD_RGD(groups, numPerGroup)
-    showDefect_CD_RCD(groups, numPerGroup)
+    deltas = []
+    f = open(os.path.join('TestCases', 'DistComparison.log'), 'r')
+    idx = 0
+    for line in f:
+        idx += 1
+        if idx == 1:
+            continue
+        cols = line.strip().split('\t')
+        assert len(cols) == rounds * 8
+        row = []
+        for i in range(len(cols)/2):
+            row.append(float(cols[i*2+1]) - float(cols[i*2]))
+        deltas.append(row)
+    pass # for line in f
+    f.close()
+    for d in deltas:
+        for x in d:
+            print '%.4f\t' % x,
+        print
+    pass # for d in deltas
+
 pass # if __name__ == '__main__'

@@ -7,6 +7,7 @@
       if (!blks)      blks = 8;
       var left = 10, height = 50 + Math.round(30 * Math.random()),
           width = 400, top = Math.round(0.1 * height);
+      document.getElementById('top').value = top;
       var display = document.getElementById('display');
       display.innerHTML = '';
       for (var i = 0; i < blks; i++) {
@@ -23,11 +24,14 @@
                                           blk.offsetWidth, blk.offsetHeight]);
         } // for (var i = 0; i < blks; i++)
       } // if (debug)
+    }</script> <!-- id="loadElements" -->
+    <script id="startTimer">function startTimer(debug) {
       setInterval(function(){
         var display = document.getElementById('display');
         if (display.value == 'true') {
           var blk = display.children[Math.floor(display.childElementCount / 2)];
-          var marTop = parseInt(blk.style.marginTop.split('px')[0]);
+          var marTop = parseInt(blk.style.marginTop.split('px')[0]),
+              top = parseInt(document.getElementById('top').value);
           blk.style.marginTop = Math.round(marTop + top * 0.1) + 'px';
           if (debug) {
             for (var i = 0; i < blks; i++) {
@@ -38,7 +42,7 @@
           } // if (debug)
         } // if (display.value == 'true')
       }, 1000); // setInterval(function(){ ... }, 2000);
-    }</script> <!-- id="loadElements" -->
+    }</script> <!-- id="startTimer" -->
     <script id="playOrPause">function playOrPause() {
       var display = document.getElementById('display');
       display.value = (display.value == 'true') ? 'false' : 'true';
@@ -82,7 +86,7 @@
       document.getElementById('results').innerHTML = '';
     }</script> <!-- id="saveData" -->
 </head>
-<body onload="loadElements();">
+<body onload="loadElements();startTimer();">
     <div style="width:45%; float:left;">
         <h3>Brief introduction</h3>
         <ul>
@@ -107,6 +111,7 @@
             <input type="button" value="Save All" style="float:right;" onclick="saveData();loadElements();" />
             <input type="button" value="Next Test" style="float:right;" onclick="cacheData();loadElements();" />
             <input type="hidden" value="" id="saveddata" />
+            <input type="hidden" value="" id="top" />
         </div>
     </div>
     <div id="display" style="width:50%; height:800px; float:right; border:solid black;"></div>
