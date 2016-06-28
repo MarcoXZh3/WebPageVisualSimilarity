@@ -4,7 +4,8 @@ Created on Jun 21, 2016
 @author: MarcoXZh
 '''
 
-import re
+import sys, re
+import xml.etree.ElementTree as ET
 from colormath.color_objects import sRGBColor, LabColor
 from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cie2000
@@ -19,10 +20,17 @@ def sameColor(color1, color2):
     '''
     if color1 == "transparent" and color2 == "transparent":
         return True
-    if color1 != "transparent" and color2 != "ransparent":
-        rgb1, rgb2 = re.split(r"\D+", color1)[1:-1], re.split(r"\D+", color2)[1:-1]
-        rgb1 = sRGBColor(int(rgb1[0]), int(rgb1[1]), int(rgb1[2]), is_upscaled=True)
-        rgb2 = sRGBColor(int(rgb2[0]), int(rgb2[1]), int(rgb2[2]), is_upscaled=True)
+    if color1 != "transparent" and color2 != "transparent":
+        if "," in color1:
+            rgb1 = re.split(r"\D+", color1)[1:-1]
+            rgb1 = sRGBColor(int(rgb1[0]), int(rgb1[1]), int(rgb1[2]), is_upscaled=True)
+        else:
+            rgb1 = sRGBColor.new_from_rgb_hex(color1)
+        if "," in color2:
+            rgb2 = re.split(r"\D+", color2)[1:-1]
+            rgb2 = sRGBColor(int(rgb2[0]), int(rgb2[1]), int(rgb2[2]), is_upscaled=True)
+        else:
+            rgb2 = sRGBColor.new_from_rgb_hex(color2)
         return delta_e_cie2000(convert_color(rgb1, LabColor), convert_color(rgb2, LabColor)) < 4.65
     pass # if color1 != "transparent" and color2 != "ransparent"
     return False
@@ -71,9 +79,10 @@ def normalizedHausdorffDistance(node1, node2):
     return max(normailizedDistance_AtoB(node1, node2), normailizedDistance_AtoB(node2, node1))
 pass # def normalizedHausdorffDistance(node1, node2)
 
-def MergeNodeByGestaltLaws(elements, CSS, debug=False):
+def MergeNodeByGestaltLaws(elements, parent, CSS, debug=False):
     '''
     @param elements:       {List} contains all sibling WebElements, both visible and invisible
+    @param parent:         {ET.Element} the parent of the newly created BT nodes
     @param CSS:            {List} contains all supported CSS properties
     @param debug:          {Boolean} (Optional) True to display debugging information; False not
     @return :              {Tuple} the BT nodes created, as well as the BT-DT map list
@@ -142,10 +151,31 @@ def MergeNodeByGestaltLaws(elements, CSS, debug=False):
             btNodes.append(curNodes)
         pass # if len(curNodeMapList) > 0
     pass # if len(elements) != 1
-    for nodes in btNodes:
-        # TODO: create ET elements by the node here
-        pass
-    pass # for nodes in btNodes
+    pXpath = parent.attrib["xpath"] + "/"
+    for i, nodes in enumerate(btNodes):
+        btNode = ET.SubElement(parent, "DIV")
+        node_name = "[%s]" % (",".join(str(x) for x in btNodeMapList[i]))
+        btNode.set("node_name", node_name)
+        btNode.set("xpath", pXpath + node_name)
+        left, top, right, bottom = sys.maxint, sys.maxint, -1, -1
+        for node in nodes:
+            l, r = int(node.location["x"]), int(node.location["x"]) + int(node.size["width"])
+            t, b = int(node.location["y"]), int(node.location["y"]) + int(node.size["height"])
+            if l < left:    left = l
+            if t < top:     top = t
+            if r > right:   right = r
+            if b > bottom:  bottom = b
+        pass # for node in nodes
+        btNode.set("left", "%d" % left)
+        btNode.set("top", "%d" % top)
+        btNode.set("right", "%d" % right)
+        btNode.set("bottom", "%d" % bottom)
+        for style in CSS:
+            v = nodes[0].value_of_css_property(style)
+            btNode.set("css_" + style, v)
+        pass # for style in CSS
+        btNodes[i] = btNode
+    pass # for i, nodes in enumerate(btNodes)
 
     return btNodeMapList, btNodes
-pass # def MergeNodeByGestaltLaws(elements, CSS, debug=False)
+pass # def MergeNodeByGestaltLaws(elements, parent, CSS, debug=False)

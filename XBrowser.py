@@ -1,3 +1,5 @@
+import os, time
+from PIL import Image
 from selenium import webdriver
 import xml.etree.ElementTree as ET
 from XBrowserGestaltVars import *
@@ -11,8 +13,6 @@ def fullpage_screenshot(driver, imgFile, debug=False):
     @param imgFile:        {String} the name of the target image file
     @param debug:          {Boolean} (Optional) True to display debugging information; False not
     '''
-    import os, time
-    from PIL import Image
     if debug:
         print("Starting full page screenshot workaround ...")
     total_width = driver.execute_script("return document.body.offsetWidth")
@@ -85,7 +85,7 @@ def BuildTrees(driver, parent, treeParents, CSS, mr, debug=False):
     btNodesMapList = []
     if "BT" in treeParents:
         btNodesMapList, btNodes = MergeNodeByGestaltLaws(driver.find_elements_by_xpath(parent["dom_xpath"] +"/*"), \
-                                                         CSS, debug)
+                                                         treeParents["BT"], CSS, debug)
         if debug:
             assert len(btNodes) == len(btNodesMapList)
     pass # if "BT" in treeParents
@@ -110,10 +110,10 @@ def BuildTrees(driver, parent, treeParents, CSS, mr, debug=False):
                 print "Creating DT node: %s" % child.tag_name
             dtNode = ET.SubElement(treeParents["DT"], "DIV")
             dtNode.set("node_name", child.tag_name)
-            dtNode.set("left", int(child.location["x"]))
-            dtNode.set("top", int(child.location["y"]))
-            dtNode.set("right", int(child.location["x"]) + int(child.size["width"]))
-            dtNode.set("bottom", int(child.location["y"]) + int(child.size["height"]))
+            dtNode.set("left", "%d" % int(child.location["x"]))
+            dtNode.set("top", "%d" % int(child.location["y"]))
+            dtNode.set("right", "%d" % (int(child.location["x"]) + int(child.size["width"])))
+            dtNode.set("bottom", "%d" % (int(child.location["y"]) + int(child.size["height"])))
             dtNode.set("xpath", "%s/*[%d]" % (chDomXpath, i+1))
             for style in CSS:
                 dtNode.set("css_" + style, styles[style])
@@ -122,15 +122,15 @@ def BuildTrees(driver, parent, treeParents, CSS, mr, debug=False):
 
         # Create a VT node
         if "VT" in treeParents:
-            if child.is_displayed() or child.size["height"] == 0.0 or child.size["width"] == 0.0:
+            if child.is_displayed() and int(child.size["height"]) != 0 and int(child.size["width"]) != 0:
                 if debug:
                     print "Creating VT node: %s" % child.tag_name
                 vtNode = ET.SubElement(treeParents["VT"], "DIV")
                 vtNode.set("node_name", child.tag_name)
-                vtNode.set("left", int(child.location["x"]))
-                vtNode.set("top", int(child.location["y"]))
-                vtNode.set("right", int(child.location["x"]) + int(child.size["width"]))
-                vtNode.set("bottom", int(child.location["y"]) + int(child.size["height"]))
+                vtNode.set("left", "%d" % int(child.location["x"]))
+                vtNode.set("top", "%d" % int(child.location["y"]))
+                vtNode.set("right", "%d" % (int(child.location["x"]) + int(child.size["width"])))
+                vtNode.set("bottom", "%d" % (int(child.location["y"]) + int(child.size["height"])))
                 vtNode.set("xpath", "%s/*[%d]" % (chDomXpath, i+1))
                 for style in CSS:
                     vtNode.set("css_" + style, styles[style])
@@ -169,12 +169,12 @@ def printSubTree(root, level, treeName, treeType, debug=False):
     output = []
     if level == 0:
         output.append("==== %s: %s ====" % (treeName, treeType))
-    line, idx = "  ", 1
+    line, idx = "  ", 0
     while idx < level:
         line += "| "
         idx += 1
     atrs = root.attrib
-    line += "+ %s: left=%d,top=%d,right=%d,bottom=%d; xpath=\"%s\"" % \
+    line += "+ %s: left=%s,top=%s,right=%s,bottom=%s; xpath=\"%s\"" % \
             (atrs["node_name"], atrs["left"], atrs["right"], atrs["right"], atrs["bottom"], atrs["xpath"])
     output.append(line)
 
@@ -189,140 +189,143 @@ pass # def printSubTree(root, level, treeName, treeType, debug=False)
 def analyzePage(url, browser, treeTypes=("DT", "VT", "BT"), debug=False):
     '''
     @param url:            {String} the URL of the page
-    @param browser:        {String} the name of the browser, such as "Firefox", "Chrome"
+    @param browser:        {String} the short name of the browser, such as "FF", "CH"
     @param trreTypes:      {Tuple} (Optional) the target tree types, including "DT", "VT" or "BT"
     @param debug:          {Boolean} (Optional) True to display debugging information; False not
+    @return :              {Boolean} True if successfully analyzed the page; False otherwise
     '''
     # Initialize the driver
-    driver, imgFile = None, url.replace("/", "%E2").replace(":", "%3A").replace("?", "%3F")
-    if browser == "Firefox":
+    driver, flag = None, False
+    if browser == "FF":
         from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
         firefox_capabilities = DesiredCapabilities.FIREFOX
         firefox_capabilities["marionette"] = True
         driver = webdriver.Firefox(capabilities=firefox_capabilities)
-        imgFile += "-FF.png"
-    elif browser == "Chrome":
+    elif browser == "CH":
         driver = webdriver.Chrome()
-        imgFile += "-CH.png"
+    elif browser == "PH":
+        driver = webdriver.PhantomJS()
+    elif browser == "EG":
+        driver = webdriver.Edge('C:\\Program Files (x86)\\Microsoft Web Driver\\MicrosoftWebDriver.exe')
     pass # elif - if
 
-    # Get ready the browser window and then retrieve the page
-    scrollbarwidth = 0
-    if isinstance(driver, webdriver.Chrome):
-        scrollbarwidth = 35
-    elif isinstance(driver, webdriver.Firefox):
-        scrollbarwidth = 29
-    pass # elif - if
-    driver.set_window_size(scrollbarwidth + 1024, 768)
-    driver.get(url)
+    try:
+        # Get ready the browser window and then retrieve the page
+        driver.set_window_size(1024, 768)
+        driver.get(url)
 
-    # Take full page screenshot
-    fullpage_screenshot(driver, imgFile)
+        # Take full page screenshot
+        imgFile = "/run/media/marco/0002A8780009A3C6/TestCases/%s-%s.png" % \
+                    (url.replace("/", "%E2").replace(":", "%3A").replace("?", "%3F"), browser)
+        fullpage_screenshot(driver, imgFile)
 
-    # Parse and save: DOM tree, Visual tree and block tree
-    xpath = "/html/body"
-    body = driver.find_element_by_xpath(xpath)
-    trees, treeRoots = {}, {}
-    if "DT" in treeTypes:
-        dtRoot = ET.Element("BODY")
-        dtRoot.set("tree_name", url)
-        dtRoot.set("tree_type", "DT")
-        dtRoot.set("node_name", body.tag_name)
-        dtRoot.set("left", int(body.location["x"]))       # Using body.rect will raise exception for Google Chrome!!!
-        dtRoot.set("top", int(body.location["y"]))
-        dtRoot.set("right", int(body.location["x"]) + int(body.size["width"]))
-        dtRoot.set("bottom", int(body.location["y"]) + int(body.size["height"]))
-        dtRoot.set("xpath", xpath)
-        trees["DT"] = ET.ElementTree(dtRoot)
-        treeRoots["DT"] = dtRoot
-    pass # if "DT" in treeTypes
-    if "VT" in treeTypes:
-        vtRoot = ET.Element("BODY")
-        vtRoot.set("tree_name", url)
-        vtRoot.set("tree_type", "VT")
-        vtRoot.set("node_name", body.tag_name)
-        vtRoot.set("xpath", xpath)
-        trees["VT"] = ET.ElementTree(vtRoot)
-        treeRoots["VT"] = vtRoot
-    pass # if "VT" in treeTypes
-    if "BT" in treeTypes:
-        btRoot = ET.Element("BODY")
-        btRoot.set("tree_name", url)
-        btRoot.set("tree_type", "BT")
-        btRoot.set("node_name", body.tag_name)
-        btRoot.set("xpath", "/html/[2]")                 # "/html/*[1]" is HEAD
-        trees["BT"] = ET.ElementTree(btRoot)
-        treeRoots["BT"] = btRoot
-    pass # if "BT" in treeTypes
-    theCSS = None
-    if browser == "Firefox":
-        theCSS = cssFF
-    elif browser == "Chrome":
-        theCSS = cssCH
-    if debug:
-        assert theCSS is not None
-    for root in treeRoots.values():
-        root.set("left", int(body.location["x"]))       # Using body.rect will raise exception for Google Chrome!!!
-        root.set("top", int(body.location["y"]))
-        root.set("right", int(body.location["x"]) + int(body.size["width"]))
-        root.set("bottom", int(body.location["y"]) + int(body.size["height"]))
-        for style in theCSS:
-            v = body.value_of_css_property(style)
-            for root in treeRoots.values():
-                root.set("css_" + style, v)
-        pass # for style in theCSS
-    pass # for root in treeRoots.values()
-    mr = []
-    BuildTrees(driver, {"element":body, "dom_xpath":xpath}, treeRoots, theCSS, mr, debug=not True)
-    if "DT" in treeTypes:
-        xmlFile = url.replace("/", "%E2").replace(":", "%3A").replace("?", "%3F")
-        if browser == "Firefox":
-            xmlFile += "-FF-DT.xml"
-        elif browser == "Chrome":
-            xmlFile += "-CH-DT.xml"
-#         trees["DT"].write(xmlFile)
-        mr.append("\n")
-        mr += printSubTree(treeRoots["DT"], 0, url, "DT", debug)
-    pass # if "DT" in treeTypes
-    if "VT" in treeTypes:
-        xmlFile = url.replace("/", "%E2").replace(":", "%3A").replace("?", "%3F")
-        if browser == "Firefox":
-            xmlFile += "-FF-VT.xml"
-        elif browser == "Chrome":
-            xmlFile += "-CH-VT.xml"
-#         trees["VT"].write(xmlFile)
-        mr.append("\n")
-        mr += printSubTree(treeRoots["VT"], 0, url, "VT", debug)
-    pass # if "VT" in treeTypes
-    if "BT" in treeTypes:
-        xmlFile = url.replace("/", "%E2").replace(":", "%3A").replace("?", "%3F")
-        if browser == "Firefox":
-            xmlFile += "-FF-BT.xml"
-        elif browser == "Chrome":
-            xmlFile += "-CH-BT.xml"
-#         trees["BT"].write(xmlFile)
-        mr.append("\n")
-        mr += printSubTree(treeRoots["BT"], 0, url, "BT", debug)
-    pass # if "BT" in treeTypes
-    txt = url.replace("/", "%E2").replace(":", "%3A").replace("?", "%3F")
-    if browser == "Firefox":
-        txt += "-FF.txt"
-    elif browser == "Chrome":
-        txt += "-CH.txt"
-    f = open(txt, "w")
-    for line in mr:
-        f.write(line + "\n")
-    f.close()
-
-    # Finally, quit the browser
-    driver.quit()
+        # Parse and save: DOM tree, Visual tree and block tree
+        xpath = "/html/body"
+        body = driver.find_element_by_xpath(xpath)
+        trees, treeRoots = {}, {}
+        if "DT" in treeTypes:
+            dtRoot = ET.Element("BODY")
+            dtRoot.set("tree_name", url)
+            dtRoot.set("tree_type", "DT")
+            dtRoot.set("node_name", body.tag_name)
+            dtRoot.set("xpath", xpath)
+            trees["DT"] = ET.ElementTree(dtRoot)
+            treeRoots["DT"] = dtRoot
+        pass # if "DT" in treeTypes
+        if "VT" in treeTypes:
+            vtRoot = ET.Element("BODY")
+            vtRoot.set("tree_name", url)
+            vtRoot.set("tree_type", "VT")
+            vtRoot.set("node_name", body.tag_name)
+            vtRoot.set("xpath", xpath)
+            trees["VT"] = ET.ElementTree(vtRoot)
+            treeRoots["VT"] = vtRoot
+        pass # if "VT" in treeTypes
+        if "BT" in treeTypes:
+            btRoot = ET.Element("BODY")
+            btRoot.set("tree_name", url)
+            btRoot.set("tree_type", "BT")
+            btRoot.set("node_name", body.tag_name)
+            btRoot.set("xpath", "/html/[2]")                 # "/html/*[1]" is HEAD
+            trees["BT"] = ET.ElementTree(btRoot)
+            treeRoots["BT"] = btRoot
+        pass # if "BT" in treeTypes
+        theCSS = None
+        if browser == "FF":
+            theCSS = cssFF
+        else:#if browser == "CH" or browser == "PH":
+            theCSS = cssCH
+        if debug:
+            assert theCSS is not None
+        for root in treeRoots.values():         # Using body.rect will raise exception for Google Chrome!!!
+            root.set("left", "%d" % int(body.location["x"]))
+            root.set("top", "%d" % int(body.location["y"]))
+            root.set("right", "%d" % (int(body.location["x"]) + int(body.size["width"])))
+            root.set("bottom", "%d" % (int(body.location["y"]) + int(body.size["height"])))
+            for style in theCSS:
+                v = body.value_of_css_property(style)
+                for root in treeRoots.values():
+                    root.set("css_" + style, v)
+            pass # for style in theCSS
+        pass # for root in treeRoots.values()
+        mr = []
+        BuildTrees(driver, {"element":body, "dom_xpath":xpath}, treeRoots, theCSS, mr, debug=not True)
+        xmlFile = "/run/media/marco/0002A8780009A3C6/TestCases/%s-%s" % \
+                    (url.replace("/", "%E2").replace(":", "%3A").replace("?", "%3F"), browser)
+        if "DT" in treeTypes:
+            trees["DT"].write(xmlFile + "-DT.xml")
+            mr.append("\n")
+            mr += printSubTree(treeRoots["DT"], 0, url, "DT", debug)
+        pass # if "DT" in treeTypes
+        if "VT" in treeTypes:
+            trees["VT"].write(xmlFile + "-VT.xml")
+            mr.append("\n")
+            mr += printSubTree(treeRoots["VT"], 0, url, "VT", debug)
+        pass # if "VT" in treeTypes
+        if "BT" in treeTypes:
+            trees["BT"].write(xmlFile + "-BT.xml")
+            mr.append("\n")
+            mr += printSubTree(treeRoots["BT"], 0, url, "BT", debug)
+        pass # if "BT" in treeTypes
+        f = open("/run/media/marco/0002A8780009A3C6/TestCases/%s-%s.txt" % \
+                    (url.replace("/", "%E2").replace(":", "%3A").replace("?", "%3F"), browser), "w")
+        for line in mr:
+            f.write(line + "\n")
+        f.close()
+        flag = True
+    except Exception as inst:
+        print type(inst), inst
+        errFile = open("/run/media/marco/0002A8780009A3C6/TestCases/err.txt", "a")
+        errFile.write("%s - %s\n" % (browser, url))
+        errFile.close()
+    finally:
+        driver.quit()
+        return flag
+    pass # try - except - finally
 pass # def analyzePage(url, browser, treeTypes=("DT", "VT", "BT"), debug=False)
 
 
 if __name__ == "__main__":
-    urls = ["https://www.google.ca/"]
+#     urls = ["https://www.google.ca/"]
+    browsers = ["FF", "CH", "PH"]
+    logFile = open("/run/media/marco/0002A8780009A3C6/TestCases/log.txt", "w")
+    logFile.close()
+    errFile = open("/run/media/marco/0002A8780009A3C6/TestCases/err.txt", "w")
+    errFile.close()
     for i, url in enumerate(urls):
-        analyzePage(url, "Firefox")
-#         analyzePage(url, "Chrome", ("VT"))
+        for j, browser in enumerate(browsers):
+            print "%4d-%d(%s) -- %s" % (i+1, j+1, browser, url)
+            t1 = time.time()
+            flag = analyzePage(url, browser)
+            t2 = time.time()
+            if flag:
+                print "%4d-%d(%s) -- %ds" % (i+1, j+1, browser, t2 - t1)
+                logFile = open("/run/media/marco/0002A8780009A3C6/TestCases/log.txt", "a")
+                logFile.write("%4d-%d(%s): %ds -- %s\n" % (i+1, j+1, browser, t2 - t1, url))
+                logFile.close()
+            else:
+                print "ERROR! %4d-%d(%s) -- %ds" % (i+1, j+1, browser, t2 - t1)
+            pass # else - if flag
+        pass # for j, browser in enumerate(browsers)
     pass # for i, url in enumerate(urls)
 pass # if __name__ == "__main__"
