@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   // 3: Download the BT xml
                   chrome.downloads.download({url:'data:text/html,' + response.msg[3], filename:filename+"-BT.xml",
                                              conflictAction:"overwrite"}, function (downloadId3) {
+                    window.close();
                     /*/ TODO: 4: take screenshot of full pages
                     chrome.windows.getCurrent({}, function(window) {
                       chrome.tabs.captureVisibleTab(window.id, {format: 'png'}, function(dataURI) {
@@ -82,8 +83,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                         '</title></head><body><code style="overflow:auto;white-space:nowrap;">' +
                                         response.msg[1].replace(/\n/g, '<br/>') + '</code></body>',
                                    width: 800, height: 450, type: 'panel'}); // chrome.windows.create({...});
+            window.close();
           } // else - if (mi.id == 'AnalyzePage') {
-          window.close();
         }); // chrome.tabs.sendMessage(tabs[i].id, ...);
       }); // chrome.tabs.query(queryInfo, function(tabs) { ... });
     }; // // li.onclick = (mi.id == 'BatchCrawling') ? function() {...} : function() {...};
