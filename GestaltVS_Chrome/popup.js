@@ -53,7 +53,9 @@ document.addEventListener('DOMContentLoaded', function() {
                               {caller:{mi:mi.id, tab:tabs[0].id}, time:new Date().getTime()},
                               function(response) {
           if (mi.id == 'AnalyzePage') {
-            var filename = tabs[0].url.replace(/\//g, '%E2').replace(/:/g, '%3A').replace(/\?/g, '%3F');
+            var filename = tabs[0].url.replace(/\\/g, '%5C').replace(/\//g, '%2F').replace(/\:/g, '%3A')
+                                      .replace(/\*/g, '%2A').replace(/\?/g, '%3F').replace(/\"/g, '%22')
+                                      .replace(/\</g, '%3C').replace(/\>/g, '%3E').replace(/\|/g, '%7C');
             // 1: Download the merging results
             chrome.downloads.download({url:'data:text/html,' + response.msg[0].replace(/\n/g, '<br/>'),
                                        filename:filename+".txt", conflictAction:"overwrite"}, function (downloadId0) {

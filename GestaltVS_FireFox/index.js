@@ -1,3 +1,4 @@
+// jpm run -b /usr/bin/firefox --binary-args http://resizemybrowser.com/
 // Import useful built-in libraries
 const {Cc, Ci, Cu} = require('chrome');
 const l10nString = require('sdk/l10n').get;
@@ -62,7 +63,7 @@ const panel = require('sdk/panel').Panel({
       if (mi.id == 'BatchCrawling')
         BatchCrawl();
       else if (mi.id == 'AnalyzePage')
-        AnalyzePage(require('sdk/window/utils').getMostRecentBrowserWindow(), tabs.activeTab, true, function(time) {
+        AnalyzePage(require('sdk/window/utils').getMostRecentBrowserWindow(), tabs.activeTab, false, function(time) {
           console.log('AnalyzePage - ' + time + 'ms: ' + tabs.activeTab.url);
         }); // AnalyzePage( ... );
       else
@@ -145,7 +146,7 @@ const AnalyzePage = (window, tab, update, callback) => {
   const worker = tab.attach({contentScriptFile:contentScripts});
 
   // Get the web page screenshot as PNG image
-  var contentWindow = window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation)
+  /*var contentWindow = window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation)
                             .QueryInterface(Ci.nsIDocShellTreeItem).rootTreeItem
                             .QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow)
                             .gBrowser.browsers[tab.index].contentWindow;
@@ -153,16 +154,18 @@ const AnalyzePage = (window, tab, update, callback) => {
   canvas.width = contentWindow.document.body.scrollWidth;
   canvas.height = contentWindow.document.body.scrollHeight;
   var ctx = canvas.getContext('2d');
-  ctx.drawWindow(contentWindow, 0, 0, canvas.width, canvas.height, '#FFF');
-  var filename = tab.url.replace(/\//g, '%E2').replace(/:/g, '%3A').replace(/\?/g, '%3F');
+  ctx.drawWindow(contentWindow, 0, 0, canvas.width, canvas.height, '#FFF');*/
+  var filename = tab.url.replace(/\\/g, '%5C').replace(/\//g, '%2F').replace(/\:/g, '%3A')
+                        .replace(/\*/g, '%2A').replace(/\?/g, '%3F').replace(/\"/g, '%22')
+                        .replace(/\</g, '%3C').replace(/\>/g, '%3E').replace(/\|/g, '%7C');
   Cu.import('resource://gre/modules/Services.jsm');
   var fileNoExt = Services.dirsvc.get('DfltDwnld', Ci.nsIFile);
   fileNoExt.append(filename);
-  Cu.import('resource://gre/modules/Task.jsm');
-  Task.spawn(function () {
+  //Cu.import('resource://gre/modules/Task.jsm');
+  /*Task.spawn(function () {
     Cu.import('resource://gre/modules/Downloads.jsm');
     yield Downloads.fetch(canvas.toDataURL().replace('image/png', 'image/octet-stream'), fileNoExt.path + '.png');
-  }).then(null, Cu.reportError);
+  }).then(null, Cu.reportError);*/
 
   // Retrieve all results and save as TXT
   worker.port.emit('request-AnalyzePage', new Date().getTime(), update);

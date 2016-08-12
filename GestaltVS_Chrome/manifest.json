@@ -16,7 +16,7 @@
     "default_title":    "__MSG_extTitle__"
   },
 
-  "permissions": ["downloads", "activeTab", "tabs"],
+  "permissions": ["downloads", "activeTab", "tabs", "<all_urls>"],
 
   "background": {
     "scripts": ["preference.js", "background.js"],

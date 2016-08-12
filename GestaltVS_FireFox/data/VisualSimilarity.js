@@ -279,7 +279,7 @@ function createSubBlockTree(originNodes, parentNode) {
     node.setAttribute('bottom', Math.max.apply(null, bottoms) + '');
     node.setAttribute('xpath', getXPath(nodeGroup[0]));
     for (var j = 0; j < cssVS.length; j++)
-      node.setAttribute('css_' + cssVS[j], getComputedStyle(nodeGroup[0]).getPropertyValue(cssVS[j]));
+      node.setAttribute('css_' + cssVS[j], nodeGroup[0].getAttribute('css_' + cssVS[j]));
     node.setAttribute('css_position', getComputedStyle(nodeGroup[0]).getPropertyValue('position'));
 
     // Create sub tree
