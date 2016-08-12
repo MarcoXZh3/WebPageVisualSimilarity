@@ -143,9 +143,9 @@ function splitByAllLaws(nodes) {
       var index = 0;                                                                            // Similarity
       for (; index < cssVS.length; index++) {
         var css1 = node1.getAttribute('css_' + cssVS[index]), css2 = node2.getAttribute('css_' + cssVS[index]);
-        if (cssVS[index].contains('color') && !sameColor(css1, css2))
+        if (cssVS[index].includes('color') && !sameColor(css1, css2))
           break ;
-        else if (cssVS[index].contains('image') &&
+        else if (cssVS[index].includes('image') &&
                  !((css1 == 'none' && css2 == 'none') || (css1 == '' && css2 == '') || sameImage(css1, css2)))
           break ;
         else if (css1 != css2)
@@ -202,9 +202,9 @@ function applyAllLaws(node, mergingResults) {
       var index = 0;                                                                            // Similarity
       for (; index < cssVS.length; index++) {
         var css1 = child1.getAttribute('css_' + cssVS[index]), css2 = child2.getAttribute('css_' + cssVS[index]);
-        if (cssVS[index].contains('color') && !sameColor(css1, css2))
+        if (cssVS[index].includes('color') && !sameColor(css1, css2))
           break ;
-        else if (cssVS[index].contains('image') &&
+        else if (cssVS[index].includes('image') &&
                  !((css1 == 'none' && css2 == 'none') || (css1 == '' && css2 == '') || sameImage(css1, css2)))
           break ;
         else if (css1 != css2)
@@ -276,9 +276,9 @@ function getSimilarity(node, mergingResults) {
     var index = 0;                                                                            // Similarity
     for (; index < cssVS.length; index++) {
       var css1 = child1.getAttribute('css_' + cssVS[index]), css2 = child2.getAttribute('css_' + cssVS[index]);
-      if (cssVS[index].contains('color') && !sameColor(css1, css2))
+      if (cssVS[index].includes('color') && !sameColor(css1, css2))
         break ;
-      else if (cssVS[index].contains('image') &&
+      else if (cssVS[index].includes('image') &&
                !((css1 == 'none' && css2 == 'none') || (css1 == '' && css2 == '') || sameImage(css1, css2)))
         break ;
       else if (css1 != css2)

@@ -55,7 +55,7 @@ self.port.on('request-GestaltMerging', function(startTime) {
     var mr = mergingResults[i];
     for (var j = 0; j < mr.length; j++) {
       var strMR = printTreeNode(mr[j]).trim();
-      if (strMR.contains('|- '))
+      if (strMR.includes('|- '))
         strMR = strMR.substr(strMR.indexOf('|- ') + 3)
       strMRs += strMR + '\n';
       if (debug)
@@ -95,7 +95,7 @@ self.port.on('request-AnalyzePage', function(startTime, update) {
     var mr = mergingResults[i];
     for (var j = 0; j < mr.length; j++) {
       var strMR = printTreeNode(mr[j]).trim();
-      if (strMR.contains('|- '))
+      if (strMR.includes('|- '))
         strMR = strMR.substr(strMR.indexOf('|- ') + 3)
       strMRs += strMR + '\n';
       if (debug)
