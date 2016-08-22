@@ -53,6 +53,10 @@ document.addEventListener('DOMContentLoaded', function() {
                               {caller:{mi:mi.id, tab:tabs[0].id}, time:new Date().getTime()},
                               function(response) {
           if (mi.id == 'AnalyzePage') {
+            if (!response.msg[0] || !response.msg[1] || !response.msg[2] || !response.msg[3]) {
+              window.close();
+              return ;
+            } // if (!response.msg[0] || !response.msg[1] || !response.msg[2] || !response.msg[3])
             var filename = tabs[0].url.replace(/\\/g, '%5C').replace(/\//g, '%2F').replace(/\:/g, '%3A')
                                       .replace(/\*/g, '%2A').replace(/\?/g, '%3F').replace(/\"/g, '%22')
                                       .replace(/\</g, '%3C').replace(/\>/g, '%3E').replace(/\|/g, '%7C');
@@ -68,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   // 3: Download the BT xml
                   chrome.downloads.download({url:'data:text/html,' + response.msg[3], filename:filename+"-BT.xml",
                                              conflictAction:"overwrite"}, function (downloadId3) {
+                    console.log(response.timeSpan + "ms - " + tabs[0].url);
                     window.close();
                     /*/ TODO: 4: take screenshot of full pages
                     chrome.windows.getCurrent({}, function(window) {

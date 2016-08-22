@@ -82,31 +82,46 @@ self.port.on('request-BlockTree', function(startTime) {
  * Register event handlers of the menu item - "AnalyzePage"
  */
 self.port.on('request-AnalyzePage', function(startTime, update) {
-  var oSerializer = new XMLSerializer();
-  var domTree = createTree(document.body, 'DT'), xmlDT = oSerializer.serializeToString(domTree);
-  var strDT = printTree(domTree, 'DT', debug);
-  var visualTree = createTree(document.body, 'VT'), xmlVT = oSerializer.serializeToString(visualTree);
-  var strVT = printTree(visualTree, 'VT', debug);
-  var blockTree = createTree(visualTree, 'BT'), xmlBT = oSerializer.serializeToString(blockTree);
-  var strBT = printTree(blockTree, 'BT', debug);
-  var mergingResults = getMergingResults(blockTree);
-  var strMRs = '';
-  for (var i = 0; i < mergingResults.length; i++) {
-    var mr = mergingResults[i];
-    for (var j = 0; j < mr.length; j++) {
-      var strMR = printTreeNode(mr[j]).trim();
-      if (strMR.includes('|- '))
-        strMR = strMR.substr(strMR.indexOf('|- ') + 3)
-      strMRs += strMR + '\n';
+  var strMRs = '', strDT = '', strVT = '', strBT = '';
+  var xmlDT = null, xmlVT = null, xmlBT = '';
+  try {
+    var oSerializer = new XMLSerializer();
+    var domTree = createTree(document.body, 'DT')
+    xmlDT = oSerializer.serializeToString(domTree);
+    strDT = printTree(domTree, 'DT', debug);
+    var visualTree = createTree(document.body, 'VT')
+    xmlVT = oSerializer.serializeToString(visualTree);
+    strVT = printTree(visualTree, 'VT', debug);
+    var blockTree = createTree(visualTree, 'BT')
+    xmlBT = oSerializer.serializeToString(blockTree);
+    strBT = printTree(blockTree, 'BT', debug);
+    var mergingResults = getMergingResults(blockTree);
+    for (var i = 0; i < mergingResults.length; i++) {
+      var mr = mergingResults[i];
+      for (var j = 0; j < mr.length; j++) {
+        var strMR = printTreeNode(mr[j]).trim();
+        if (strMR.includes('|- '))
+          strMR = strMR.substr(strMR.indexOf('|- ') + 3)
+        strMRs += strMR + '\n';
+        if (debug)
+          console.log(strMR);
+      } // for (var j = 0; j < mr.length; j++)
+      strMRs += '\n';
       if (debug)
-        console.log(strMR);
-    } // for (var j = 0; j < mr.length; j++)
-    strMRs += '\n';
-    if (debug)
-      console.log();
-  } // for (var i = 0; i < mergingResults.length; i++)
-  if (update)
-    updateWebPage(mergingResults);
-  self.port.emit('response-AnalyzePage', new Date().getTime() - startTime,
-                 [[strMRs, strDT, strVT, strBT].join('\n\n'), xmlDT, xmlVT, xmlBT]);
+        console.log();
+    } // for (var i = 0; i < mergingResults.length; i++)
+    if (update)
+      updateWebPage(mergingResults);
+  } catch (err) {
+      strMRs = '';
+      strDT = '';
+      strVT = '';
+      strBT = '';
+      xmlDT = null;
+      xmlVT = null;
+      xmlBT = '';
+  } finally {
+    self.port.emit('response-AnalyzePage', new Date().getTime() - startTime,
+                   [[strMRs, strDT, strVT, strBT].join('\n\n'), xmlDT, xmlVT, xmlBT]);
+  } // try - catch (err) - finally
 }); // self.port.on('request-AnalyzePage', function(startTime) { ... });

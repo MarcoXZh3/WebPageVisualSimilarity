@@ -63,7 +63,8 @@ const panel = require('sdk/panel').Panel({
       if (mi.id == 'BatchCrawling')
         BatchCrawl();
       else if (mi.id == 'AnalyzePage')
-        AnalyzePage(require('sdk/window/utils').getMostRecentBrowserWindow(), tabs.activeTab, false, function(time) {
+        AnalyzePage(require('sdk/window/utils').getMostRecentBrowserWindow(),
+                    tabs.activeTab, true, false, function(time) {
           console.log('AnalyzePage - ' + time + 'ms: ' + tabs.activeTab.url);
         }); // AnalyzePage( ... );
       else
@@ -98,40 +99,31 @@ const EventHandler = (event) => {
  * Event handler of each menu item clicking: BatchCrawling
  */
 const BatchCrawl = () => {
-  // Hold the browser to front
-  //var windows = require('sdk/windows').browserWindows;
   var thisWindow = require('sdk/window/utils').getMostRecentBrowserWindow();
-  //windows.on('deactivate', function(){thisWindow.activate()});
 
   var idx = 0, finished = 0;
   for (; idx < GROUP_SIZE && idx < URLS.length; idx++) {
     tabs.open({ url: URLS[idx], inBackground: true, onLoad: function(tab) {
-      try {
-        AnalyzePage(thisWindow, tab, false, function(time) {
-          console.log((++finished) + '/' + URLS.length + ' - ' + time + 'ms: ' + tab.url);
+      thisWindow.setTimeout(function(){
+        AnalyzePage(thisWindow, tab, false, false, function(time) {
+          console.log((++finished) + '/' + URLS.length + ' - ' + (time < 0? tab.url : time + 'ms'));
           tab.close();
         }); // AnalyzePage( ... );
-      } catch (err) {
-        console.error((++finished) + '/' + URLS.length + ' - ' + tab.url);
-        tab.close();
-      } // try - catch (err)
+      }, 2000); // thisWindow.setTimeout(function(){...}, 2000);
     }}); // tabs.open({ ... });
   } // for (; idx < GROUP_SIZE && idx < URLS.length; idx++)
   tabs.on('close', function() {
     if (idx >= URLS.length)
       return ;
     tabs.open({ url: URLS[idx], inBackground: true, onLoad: function(tab) {
-      try {
-        AnalyzePage(thisWindow, tab, false, function(time) {
-          console.log((++finished) + '/' + URLS.length + ' - ' + time + 'ms: ' + tab.url);
+      thisWindow.setTimeout(function(){
+        AnalyzePage(thisWindow, tab, false, false, function(time) {
+          console.log((++finished) + '/' + URLS.length + ' - ' + (time < 0 ? tab.url : time + 'ms'));
           tab.close();
         }); // AnalyzePage( ... );
-      } catch (err) {
-        console.error((++finished) + '/' + URLS.length + ' - ' + tab.url);
-        tab.close();
-      } // try - catch (err)
-     }}); // tabs.open({ ... });
-     idx++;
+      }, 2000); // thisWindow.setTimeout(function(){...}, 2000);
+    }}); // tabs.open({ ... });
+    idx++;
   }); // tabs.on('close', function() { ... });
 }; // function BatchCrawl()
 
@@ -139,37 +131,27 @@ const BatchCrawl = () => {
  * Analyze the web page: take screenshot, and save the results
  * @param window    {@code Window} The browser window
  * @param tab       {@code Tab} The tab to be analyzed
+ * @param capture   {@code Boolean} Capture screenshot if {@code true}; otherwise if {@code false}
  * @param update    {@code Boolean} Update page if {@code true}; not update if {@code false}
  * @param callback  {@code function} The callback function
  */
-const AnalyzePage = (window, tab, update, callback) => {
+const AnalyzePage = (window, tab, capture, update, callback) => {
   const worker = tab.attach({contentScriptFile:contentScripts});
-
-  // Get the web page screenshot as PNG image
-  var contentWindow = window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation)
-                            .QueryInterface(Ci.nsIDocShellTreeItem).rootTreeItem
-                            .QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow)
-                            .gBrowser.browsers[tab.index].contentWindow;
-  var canvas = contentWindow.document.createElementNS('http://www.w3.org/1999/xhtml', 'canvas');
-  canvas.width = contentWindow.document.body.scrollWidth;
-  canvas.height = contentWindow.document.body.scrollHeight;
-  var ctx = canvas.getContext('2d');
-  ctx.drawWindow(contentWindow, 0, 0, canvas.width, canvas.height, '#FFF');
   var filename = tab.url.replace(/\\/g, '%5C').replace(/\//g, '%2F').replace(/\:/g, '%3A')
                         .replace(/\*/g, '%2A').replace(/\?/g, '%3F').replace(/\"/g, '%22')
                         .replace(/\</g, '%3C').replace(/\>/g, '%3E').replace(/\|/g, '%7C');
   Cu.import('resource://gre/modules/Services.jsm');
   var fileNoExt = Services.dirsvc.get('DfltDwnld', Ci.nsIFile);
   fileNoExt.append(filename);
-  Cu.import('resource://gre/modules/Task.jsm');
-  Task.spawn(function () {
-    Cu.import('resource://gre/modules/Downloads.jsm');
-    yield Downloads.fetch(canvas.toDataURL().replace('image/png', 'image/octet-stream'), fileNoExt.path + '.png');
-  }).then(null, Cu.reportError);
 
-  // Retrieve all results and save as TXT
+  // Step 1: retrieve all results and save as TXT
   worker.port.emit('request-AnalyzePage', new Date().getTime(), update);
   worker.port.on('response-AnalyzePage', function(time, msgs) {
+    if (!msgs[0] || !msgs[1] || !msgs[2] || !msgs[3]) {
+      callback(-1);
+      return ;
+    } // if (!msgs[0] || !msgs[1] || !msgs[2] || !msgs[3])
+
     const {TextDecoder, TextEncoder, OS} = Cu.import('resource://gre/modules/osfile.jsm', {});
     var fileExts = ['-brief.txt', '-DT.xml', '-VT.xml', '-BT.xml'];
     for (var i = 0; i < msgs.length; i++) {
@@ -178,7 +160,27 @@ const AnalyzePage = (window, tab, update, callback) => {
       var promise = OS.File.writeAtomic(fileNoExt.path + fileExts[i], array, 
                                         {tmpPath:fileNoExt.path + fileExts[i] +  '.tmp'});
     } // for (var i = 0; i < msgs.length; i++)
+
+    // Step 2: get the web page screenshot as PNG image, if needed
+    if (capture) {
+      var contentWindow = window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation)
+                                .QueryInterface(Ci.nsIDocShellTreeItem).rootTreeItem
+                                .QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow)
+                                .gBrowser.browsers[tab.index].contentWindow;
+      var canvas = contentWindow.document.createElementNS('http://www.w3.org/1999/xhtml', 'canvas');
+      canvas.width = contentWindow.document.body.scrollWidth;
+      canvas.height = contentWindow.document.body.scrollHeight;
+      var ctx = canvas.getContext('2d');
+      ctx.drawWindow(contentWindow, 0, 0, canvas.width, canvas.height, '#FFF');
+      Cu.import('resource://gre/modules/Task.jsm');
+      Task.spawn(function () {
+        Cu.import('resource://gre/modules/Downloads.jsm');
+        yield Downloads.fetch(canvas.toDataURL().replace('image/png', 'image/octet-stream'), fileNoExt.path + '.png');
+      }).then(null, Cu.reportError);
+    } // if (capture)
+
+    // Step 3: invoke the call back function, if any
     if (callback)
       callback(time);
   }); // worker.port.on('response-AnalyzePage', function(time, msgs) {});
-}; // function AnalyzePage(window, tab, update, callback)
+}; // function AnalyzePage(window, tab, capture, update, callback)
