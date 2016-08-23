@@ -47,8 +47,8 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
             }); // chrome.downloads.download( ... );  // download the VT xml
           }); // chrome.downloads.download( ... );  // download the DT xml
         }); // chrome.downloads.download( ... );  // download the merging results
-      }); // chrome.tabs.sendMessage(tabId, {...}, function(response) { ... });
-    }, 2000); // setTimeout(function(){...}, 2000);
+      }, 2000); // setTimeout(function(){...}, 2000);
+    }); // chrome.tabs.sendMessage(tabId, {...}, function(response) { ... });
   } // if (changeInfo.status == "complete")
 }); // chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) { ... });
 
