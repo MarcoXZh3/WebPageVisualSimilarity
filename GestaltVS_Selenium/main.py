@@ -2,8 +2,8 @@ import os, time
 from PIL import Image
 from selenium import webdriver
 import xml.etree.ElementTree as ET
-from XBrowserGestaltVars import *
-from XBrowserGestalt import MergeNodeByGestaltLaws
+from Variables import *
+from GestaltLaws import MergeNodeByGestaltLaws
 
 
 def fullpage_screenshot(driver, imgFile, debug=False):
